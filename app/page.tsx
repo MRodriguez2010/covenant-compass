@@ -1,16 +1,31 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
-type Role = "pastor" | "alex" | "jordan";
-type Scenario = "growth" | "safety";
-type PastorView = "overview" | "findings" | "debrief" | "plan";
+import { buildSimulatedAIDraft, deriveDemoResult } from "@/lib/demo/engine";
+import {
+  actionItems,
+  assessmentQuestions,
+  growthFixture,
+} from "@/lib/demo/fixtures";
+import type { DemoRole as Role, DemoScenario as Scenario } from "@/lib/demo/types";
+
+type PastorView = "overview" | "findings" | "draft" | "debrief" | "plan";
+type DraftReviewStatus = "unreviewed" | "approved" | "rejected";
 
 const roleLabels: Record<Role, string> = {
   pastor: "Pastor Frank",
   alex: "Alex Rivera",
   jordan: "Jordan Rivera",
 };
+
+const demoResult = deriveDemoResult(growthFixture);
+const simulatedDraft = buildSimulatedAIDraft(demoResult);
+
+if (!simulatedDraft) {
+  throw new Error("Growth fixture must produce a simulated draft");
+}
 
 const pastorNavigation: Array<{
   id: PastorView;
@@ -19,60 +34,9 @@ const pastorNavigation: Array<{
 }> = [
   { id: "overview", number: "01", label: "Case overview" },
   { id: "findings", number: "02", label: "Findings" },
-  { id: "debrief", number: "03", label: "Debrief guide" },
-  { id: "plan", number: "04", label: "Action plan" },
-];
-
-const scoreRows = [
-  { label: "Connection", alex: 68, jordan: 73, tone: "sage" },
-  { label: "Repair after conflict", alex: 38, jordan: 44, tone: "coral" },
-  { label: "Trust & reliability", alex: 51, jordan: 67, tone: "gold" },
-  { label: "Shared meaning", alex: 82, jordan: 79, tone: "sage" },
-];
-
-const assessmentQuestions = [
-  {
-    eyebrow: "Repair after conflict",
-    prompt: "When a disagreement cools down, how easy is it to reconnect?",
-    options: ["Very difficult", "Somewhat difficult", "Usually possible", "Very easy"],
-  },
-  {
-    eyebrow: "Financial conversations",
-    prompt: "How safe does it feel to talk openly about money with your spouse?",
-    options: ["Not safe", "A little safe", "Mostly safe", "Very safe"],
-  },
-  {
-    eyebrow: "Shared meaning",
-    prompt: "We have a clear sense of what we want our marriage to stand for.",
-    options: ["Strongly disagree", "Disagree", "Agree", "Strongly agree"],
-  },
-];
-
-const actionItems = [
-  {
-    id: "pause-return",
-    week: "Week 1",
-    title: "Pause-and-return agreement",
-    detail: "Choose a phrase, a 20-minute reset, and an exact time to return.",
-    cadence: "Use during conflict",
-    owner: "Together",
-  },
-  {
-    id: "money-story",
-    week: "Week 2",
-    title: "Money story reflection",
-    detail: "Share one early memory that shaped how each of you approaches money.",
-    cadence: "25 minutes",
-    owner: "Individual + together",
-  },
-  {
-    id: "check-in",
-    week: "Weeks 3–4",
-    title: "Weekly connection check-in",
-    detail: "Name one appreciation, one pressure, and one request for the week.",
-    cadence: "Sunday evening",
-    owner: "Together",
-  },
+  { id: "draft", number: "03", label: "Simulated AI draft" },
+  { id: "debrief", number: "04", label: "Debrief guide" },
+  { id: "plan", number: "05", label: "Action plan" },
 ];
 
 function Brand() {
@@ -83,7 +47,7 @@ function Brand() {
       </div>
       <div>
         <p className="brand-name">Covenant Compass</p>
-        <p className="brand-tagline">Pastoral decision support</p>
+        <p className="brand-tagline">Pastoral workflow prototype</p>
       </div>
     </div>
   );
@@ -92,11 +56,42 @@ function Brand() {
 function DemoNotice() {
   return (
     <div className="demo-notice" role="note">
-      <span className="demo-dot" aria-hidden="true" />
-      <span>
-        <strong>Illustrative demo.</strong> Synthetic people, original sample
-        questions, deterministic results, and no stored responses.
-      </span>
+      <div className="demo-notice-copy">
+        <span className="demo-dot" aria-hidden="true" />
+        <span>
+          <strong>Prototype only.</strong> Synthetic people, original unlicensed
+          questions, deterministic results, no stored responses, and no live
+          AI. Not a clinical, diagnostic, or crisis service.
+        </span>
+      </div>
+      <div className="demo-notice-links">
+        <Link href="/methodology">Review assumptions</Link>
+        <Link href="/data-and-ai">See data &amp; AI boundary</Link>
+      </div>
+    </div>
+  );
+}
+
+function ProvenanceStrip({
+  includeAI = false,
+}: {
+  includeAI?: boolean;
+}) {
+  return (
+    <div className="provenance-strip compact" aria-label="Content provenance">
+      <span>Synthetic case</span>
+      <span>Original demo content</span>
+      <span>Unlicensed placeholder</span>
+      <span>Assumption—not validated</span>
+      <span>{includeAI ? "Simulated AI" : "Deterministic simulation"}</span>
+    </div>
+  );
+}
+
+function DemoWatermark() {
+  return (
+    <div className="demo-watermark" aria-label="Demo report watermark">
+      DEMO · SYNTHETIC DATA · NOT FOR CLINICAL USE
     </div>
   );
 }
@@ -109,7 +104,10 @@ function RoleSwitcher({
   onChange: (next: Role) => void;
 }) {
   return (
-    <div className="role-switcher" aria-label="Preview role">
+    <div
+      className="role-switcher"
+      aria-label="Role preview; this does not authenticate a user"
+    >
       {(Object.keys(roleLabels) as Role[]).map((item) => (
         <button
           className={role === item ? "role-button active" : "role-button"}
@@ -118,7 +116,7 @@ function RoleSwitcher({
           type="button"
           aria-pressed={role === item}
         >
-          <span>{item === "pastor" ? "Facilitator" : "Spouse"}</span>
+          <span>{item === "pastor" ? "Facilitator preview" : "Spouse preview"}</span>
           {roleLabels[item]}
         </button>
       ))}
@@ -164,8 +162,13 @@ function AppHeader({
         <Brand />
       </div>
       <div className="topbar-title">
-        <p className="eyebrow">Synthetic case CC–1042</p>
-        <p>Alex &amp; Jordan Rivera · Married 12 years</p>
+        <p className="eyebrow">
+          Synthetic case {growthFixture.id} · role preview—not authentication
+        </p>
+        <p>
+          {growthFixture.coupleLabel} · Fictional couple · Married{" "}
+          {growthFixture.marriageYears} years
+        </p>
       </div>
       <div className="topbar-controls">
         <ScenarioControl scenario={scenario} onChange={onScenarioChange} />
@@ -188,7 +191,7 @@ function Sidebar({
       <div className="sidebar-case">
         <p className="eyebrow">Active case</p>
         <h2>Rivera marriage</h2>
-        <p>Pastoral intake · Both complete</p>
+        <p>Synthetic fixture · Simulated completion</p>
       </div>
       <nav className="side-nav" aria-label="Pastor workspace">
         {pastorNavigation.map((item) => (
@@ -205,12 +208,12 @@ function Sidebar({
         ))}
       </nav>
       <div className="sidebar-footer">
-        <p className="eyebrow">Signed in as</p>
+        <p className="eyebrow">Previewing facilitator role</p>
         <div className="avatar-row">
           <span className="avatar">FC</span>
           <span>
             <strong>Frank Chavira</strong>
-            <small>Pastor facilitator</small>
+            <small>Demo persona · not authenticated</small>
           </span>
         </div>
       </div>
@@ -236,7 +239,7 @@ function ScoreBar({
       <div
         className="score-track"
         role="meter"
-        aria-label={`${name} score ${value} out of 100`}
+        aria-label={`${name} synthetic demonstration indicator ${value} out of 100`}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={value}
@@ -253,15 +256,19 @@ function ScoreBar({
 function RelationshipMap() {
   return (
     <section className="card relationship-card">
+      <DemoWatermark />
       <div className="section-heading">
         <div>
           <p className="eyebrow">Relationship map</p>
           <h2>Two perspectives, held side by side</h2>
         </div>
-        <span className="status-badge neutral">Provisional scores</span>
+        <span className="status-badge assumption">
+          Synthetic indicators—not validated
+        </span>
       </div>
+      <ProvenanceStrip />
       <div className="score-table">
-        {scoreRows.map((row) => (
+        {demoResult.scores.map((row) => (
           <div className="score-row" key={row.label}>
             <div className="score-label">{row.label}</div>
             <ScoreBar
@@ -278,8 +285,9 @@ function RelationshipMap() {
         ))}
       </div>
       <p className="card-footnote">
-        Scores illustrate a deterministic demo fixture. They are not validated
-        norms or a measure of marital success.
+        Authored fixture values are processed by {demoResult.generatedBy}. They
+        are not licensed scores, validated norms, or a measure of marital
+        success.
       </p>
     </section>
   );
@@ -290,30 +298,30 @@ function PatternCard({
 }: {
   onContinue: () => void;
 }) {
+  const primaryFinding = demoResult.findings[0];
+
   return (
     <section className="card pattern-card">
       <div className="finding-number">01</div>
       <div className="finding-copy">
         <div className="finding-meta">
           <span className="status-badge priority">Explore first</span>
-          <span className="confidence">3 supporting signals</span>
+          <span className="confidence">
+            {primaryFinding.evidenceIds.length} synthetic evidence references
+          </span>
         </div>
-        <p className="eyebrow">Possible interaction pattern</p>
-        <h2>A pursue–withdraw cycle may sit beneath the money conflict.</h2>
-        <p className="lede">
-          Both partners describe finances as the presenting issue. Their answers
-          point more strongly to difficulty returning to the conversation once
-          tension rises.
-        </p>
+        <p className="eyebrow">Deterministic working hypothesis</p>
+        <h2>{primaryFinding.title}</h2>
+        <p className="lede">{primaryFinding.summary}</p>
         <div className="evidence-list">
-          <span>16-point trust perception gap</span>
-          <span>Low repair confidence for both</span>
-          <span>Open text references “shutting down”</span>
+          {primaryFinding.evidence.map((item) => (
+            <span key={item}>{item}</span>
+          ))}
         </div>
         <div className="pattern-boundary">
-          <strong>Working hypothesis—not a diagnosis.</strong>
-          Confirm or reject this pattern through conversation before selecting
-          any exercise.
+          <strong>Assumption—not validated, licensed, or diagnostic.</strong>
+          This fixture demonstrates a hypothesis that a future facilitator
+          would need to confirm, revise, or reject.
         </div>
         <button className="primary-button" type="button" onClick={onContinue}>
           Review supporting findings
@@ -325,9 +333,11 @@ function PatternCard({
 
 function ReleaseCard({
   released,
+  canRelease,
   onRelease,
 }: {
   released: boolean;
+  canRelease: boolean;
   onRelease: () => void;
 }) {
   return (
@@ -335,14 +345,18 @@ function ReleaseCard({
       <div className="release-top">
         <p className="eyebrow">Couple visibility</p>
         <span className={released ? "status-badge ready" : "status-badge neutral"}>
-          {released ? "Released" : "Pastor review"}
+          {released ? "Simulated release" : "Simulated pastor review"}
         </span>
       </div>
-      <h3>{released ? "Shared summary is available" : "Detailed report is private"}</h3>
+      <h3>
+        {released
+          ? "Shared-summary preview is available"
+          : "Facilitator-only view is simulated"}
+      </h3>
       <p>
         {released
-          ? "Alex and Jordan can now see the agreed pattern, strengths, and four-week plan."
-          : "Neither spouse can see private answers, excerpts, unconfirmed hypotheses, or facilitator notes."}
+          ? "The role preview now shows the agreed pattern, strengths, and four-week plan."
+          : "A production system would enforce separate access. In this demo, anyone using the role switch can preview every role."}
       </p>
       <div className="release-preview">
         <div>
@@ -356,7 +370,9 @@ function ReleaseCard({
       </div>
       {!released && (
         <button className="secondary-button" type="button" onClick={onRelease}>
-          Preview staged release
+          {canRelease
+            ? "Simulate approved release"
+            : "Review draft before release"}
         </button>
       )}
     </section>
@@ -365,10 +381,12 @@ function ReleaseCard({
 
 function PastorOverview({
   released,
+  canRelease,
   onRelease,
   onViewChange,
 }: {
   released: boolean;
+  canRelease: boolean;
   onRelease: () => void;
   onViewChange: (next: PastorView) => void;
 }) {
@@ -376,22 +394,27 @@ function PastorOverview({
     <>
       <section className="hero-grid">
         <div className="hero-copy">
-          <p className="eyebrow">Pastor workspace</p>
-          <h1>Find the pattern beneath the conflict.</h1>
+          <p className="eyebrow">Simulated facilitator workspace</p>
+          <h1>Preview a pattern beneath the conflict.</h1>
           <p>
-            Begin with two private perspectives. Move toward one carefully
-            reviewed conversation.
+            Begin with two fictional perspectives. Preview one carefully
+            reviewed conversation without collecting real information.
           </p>
         </div>
         <div className="case-status">
           <span className="case-status-number">2/2</span>
           <div>
-            <strong>Assessments complete</strong>
-            <p>Report generated from deterministic fixtures</p>
+            <strong>Synthetic responses loaded</strong>
+            <p>
+              Fixture {demoResult.fixtureVersion} · rules{" "}
+              {demoResult.scoringVersion}
+            </p>
           </div>
         </div>
       </section>
       <DemoNotice />
+      <DemoWatermark />
+      <ProvenanceStrip />
       <div className="overview-grid">
         <div className="overview-main">
           <RelationshipMap />
@@ -399,31 +422,32 @@ function PastorOverview({
         </div>
         <aside className="overview-aside">
           <section className="card profile-card">
-            <p className="eyebrow">Presenting concern</p>
-            <blockquote>
-              “Every money conversation turns into the same argument, so now we
-              avoid it.”
-            </blockquote>
+            <p className="eyebrow">Fictional presenting concern</p>
+            <blockquote>{growthFixture.presentingConcern}</blockquote>
             <dl>
               <div>
                 <dt>Marriage</dt>
-                <dd>12 years</dd>
+                <dd>{growthFixture.marriageYears} years</dd>
               </div>
               <div>
                 <dt>Children</dt>
-                <dd>2 at home</dd>
+                <dd>{growthFixture.childrenAtHome} at home</dd>
               </div>
               <div>
                 <dt>Faith layer</dt>
-                <dd>Core Christian</dd>
+                <dd>{growthFixture.faithLayer}</dd>
               </div>
               <div>
                 <dt>Language</dt>
-                <dd>English</dd>
+                <dd>{growthFixture.language}</dd>
               </div>
             </dl>
           </section>
-          <ReleaseCard released={released} onRelease={onRelease} />
+          <ReleaseCard
+            released={released}
+            canRelease={canRelease}
+            onRelease={onRelease}
+          />
           <section className="principle-card">
             <p className="eyebrow">Facilitator principle</p>
             <p>
@@ -442,51 +466,6 @@ function FindingsView({
 }: {
   onContinue: () => void;
 }) {
-  const findings = [
-    {
-      number: "01",
-      status: "Explore first",
-      title: "Repair attempts are not landing",
-      summary:
-        "Both partners report difficulty reconnecting after conflict, even when one of them tries.",
-      evidence: [
-        "Alex: repair score 38",
-        "Jordan: repair score 44",
-        "Shared phrase: “we leave it unresolved”",
-      ],
-      question:
-        "When one of you tries to restart the conversation, what tells the other person it is safe to return?",
-    },
-    {
-      number: "02",
-      status: "Explore next",
-      title: "Trust is experienced differently",
-      summary:
-        "The partners agree on commitment but differ in how predictable and emotionally reliable the relationship feels.",
-      evidence: [
-        "16-point perception gap",
-        "Agreement on commitment",
-        "No safety indicator in growth pathway",
-      ],
-      question:
-        "What does reliability look like in a small, observable action this week?",
-    },
-    {
-      number: "03",
-      status: "Protect this strength",
-      title: "Shared meaning remains strong",
-      summary:
-        "Both partners describe a shared faith, investment in family, and a desire to repair the marriage.",
-      evidence: [
-        "Alex: shared meaning 82",
-        "Jordan: shared meaning 79",
-        "Both chose repair as the goal",
-      ],
-      question:
-        "Which shared value can guide the way you approach the money conversation?",
-    },
-  ];
-
   return (
     <section className="workspace-section">
       <div className="workspace-heading">
@@ -494,18 +473,21 @@ function FindingsView({
           <p className="eyebrow">Evidence review</p>
           <h1>Hold the findings lightly.</h1>
           <p>
-            Each pattern is traceable to synthetic evidence and remains
-            provisional until the couple confirms it.
+            Each rule-derived pattern is traceable to versioned synthetic
+            evidence. It demonstrates a future review process; it is not a
+            validated interpretation.
           </p>
         </div>
         <button className="primary-button" type="button" onClick={onContinue}>
-          Prepare the debrief
+          Preview simulated AI draft
         </button>
       </div>
       <DemoNotice />
+      <DemoWatermark />
+      <ProvenanceStrip />
       <div className="findings-list">
-        {findings.map((finding) => (
-          <article className="finding-card" key={finding.number}>
+        {demoResult.findings.map((finding) => (
+          <article className="finding-card" key={finding.id}>
             <div className="finding-index">{finding.number}</div>
             <div className="finding-body">
               <div className="finding-meta">
@@ -518,13 +500,18 @@ function FindingsView({
                 >
                   {finding.status}
                 </span>
-                <span className="confidence">Possible pattern</span>
+                <span className="confidence">
+                  Deterministic working hypothesis
+                </span>
               </div>
               <h2>{finding.title}</h2>
               <p>{finding.summary}</p>
               <div className="evidence-list">
-                {finding.evidence.map((item) => (
-                  <span key={item}>{item}</span>
+                {finding.evidence.map((item, index) => (
+                  <span key={finding.evidenceIds[index]}>
+                    <small>{finding.evidenceIds[index]}</small>
+                    {item}
+                  </span>
                 ))}
               </div>
             </div>
@@ -539,12 +526,159 @@ function FindingsView({
   );
 }
 
+function SimulatedDraftView({
+  reviewStatus,
+  onReview,
+  onContinue,
+}: {
+  reviewStatus: DraftReviewStatus;
+  onReview: (status: DraftReviewStatus) => void;
+  onContinue: () => void;
+}) {
+  return (
+    <section className="workspace-section">
+      <div className="workspace-heading">
+        <div>
+          <p className="eyebrow">Phase 5 · AI-shaped experience</p>
+          <h1>Review a simulated draft—without calling a model.</h1>
+          <p>
+            This preview is assembled by a deterministic local template from
+            the evidence IDs shown below. It does not use Codex, an OpenAI API
+            key, or any external model at runtime.
+          </p>
+        </div>
+        <span className="status-badge simulated-ai">
+          Simulated AI draft · no model called
+        </span>
+      </div>
+      <DemoNotice />
+      <DemoWatermark />
+      <ProvenanceStrip includeAI />
+
+      <div className="draft-layout">
+        <section className="card draft-card">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Evidence-linked draft</p>
+              <h2>Facilitator working notes</h2>
+            </div>
+            <span className="status-badge assumption">
+              Assumption—not validated
+            </span>
+          </div>
+          <div className="draft-meta">
+            <span>Generator: {simulatedDraft.generatedBy}</span>
+            <span>Model called: {simulatedDraft.modelCalled ? "yes" : "no"}</span>
+            <span>Case: {simulatedDraft.caseId}</span>
+          </div>
+          <div className="draft-themes">
+            {simulatedDraft.themes.map((theme, index) => (
+              <article key={theme.id}>
+                <div className="draft-theme-number">
+                  {String(index + 1).padStart(2, "0")}
+                </div>
+                <div>
+                  <h3>{theme.title}</h3>
+                  <p>{theme.hypothesis}</p>
+                  <div className="evidence-id-row">
+                    {theme.evidenceIds.map((id) => (
+                      <span key={id}>{id}</span>
+                    ))}
+                  </div>
+                  <p className="draft-uncertainty">{theme.uncertainty}</p>
+                  <div className="question-card">
+                    <p className="eyebrow">Suggested follow-up</p>
+                    <p>{theme.followUpQuestion}</p>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <aside className="draft-sidebar">
+          <section className="card review-card">
+            <p className="eyebrow">Mandatory human review simulation</p>
+            <h2>
+              {reviewStatus === "approved"
+                ? "Draft approved for debrief"
+                : reviewStatus === "rejected"
+                  ? "Draft rejected"
+                  : "Pastor decision required"}
+            </h2>
+            <p>
+              A future AI draft must never be released automatically. The
+              facilitator confirms the evidence, edits the language, and
+              accepts responsibility for the final conversation.
+            </p>
+            <div className="review-actions">
+              {reviewStatus === "unreviewed" ? (
+                <>
+                  <button
+                    className="primary-button"
+                    type="button"
+                    onClick={() => onReview("approved")}
+                  >
+                    Simulate pastor approval
+                  </button>
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() => onReview("rejected")}
+                  >
+                    Reject simulated draft
+                  </button>
+                </>
+              ) : reviewStatus === "approved" ? (
+                <>
+                  <button
+                    className="primary-button"
+                    type="button"
+                    onClick={onContinue}
+                  >
+                    Prepare the debrief
+                  </button>
+                  <button
+                    className="text-button"
+                    type="button"
+                    onClick={() => onReview("unreviewed")}
+                  >
+                    Reset review
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => onReview("unreviewed")}
+                >
+                  Reset review
+                </button>
+              )}
+            </div>
+          </section>
+          <section className="card prohibited-card">
+            <p className="eyebrow">Prohibited uses</p>
+            <ul>
+              {simulatedDraft.prohibitedUses.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </section>
+        </aside>
+      </div>
+    </section>
+  );
+}
+
 function DebriefView({
   released,
+  canRelease,
   onRelease,
   onContinue,
 }: {
   released: boolean;
+  canRelease: boolean;
   onRelease: () => void;
   onContinue: () => void;
 }) {
@@ -552,7 +686,7 @@ function DebriefView({
     {
       time: "05 min",
       title: "Set the room",
-      detail: "Restate privacy boundaries and invite correction.",
+      detail: "Preview privacy language and invite correction.",
     },
     {
       time: "10 min",
@@ -562,7 +696,7 @@ function DebriefView({
     {
       time: "20 min",
       title: "Test one pattern",
-      detail: "Map the pursue–withdraw cycle without assigning blame.",
+      detail: "Test one rule-derived hypothesis without assigning blame.",
     },
     {
       time: "10 min",
@@ -575,11 +709,11 @@ function DebriefView({
     <section className="workspace-section">
       <div className="workspace-heading">
         <div>
-          <p className="eyebrow">Facilitated debrief</p>
+          <p className="eyebrow">Simulated facilitated debrief</p>
           <h1>Turn analysis into a safe conversation.</h1>
           <p>
-            The pastor confirms the pattern with the couple before releasing
-            language or exercises.
+            This shows how a future pastor could confirm, revise, or reject a
+            pattern before releasing language or exercises.
           </p>
         </div>
         <button className="primary-button" type="button" onClick={onContinue}>
@@ -587,6 +721,8 @@ function DebriefView({
         </button>
       </div>
       <DemoNotice />
+      <DemoWatermark />
+      <ProvenanceStrip />
       <div className="debrief-grid">
         <section className="card agenda-card">
           <div className="section-heading">
@@ -594,7 +730,9 @@ function DebriefView({
               <p className="eyebrow">45-minute session</p>
               <h2>Conversation guide</h2>
             </div>
-            <span className="status-badge neutral">Pastor only</span>
+            <span className="status-badge neutral">
+              Simulated facilitator-only view
+            </span>
           </div>
           <div className="agenda-list">
             {agenda.map((item, index) => (
@@ -613,14 +751,18 @@ function DebriefView({
         </section>
         <div className="debrief-side">
           <section className="card language-card">
-            <p className="eyebrow">Suggested language</p>
+            <p className="eyebrow">Original demo language · unlicensed</p>
             <blockquote>
               “This does not tell us why you do what you do. It gives us a
               pattern to test together. Tell me where it fits—and where it
               doesn’t.”
             </blockquote>
           </section>
-          <ReleaseCard released={released} onRelease={onRelease} />
+          <ReleaseCard
+            released={released}
+            canRelease={canRelease}
+            onRelease={onRelease}
+          />
         </div>
       </div>
     </section>
@@ -629,11 +771,13 @@ function DebriefView({
 
 function PlanView({
   released,
+  canRelease,
   onRelease,
   completedActions,
   onToggleAction,
 }: {
   released: boolean;
+  canRelease: boolean;
   onRelease: () => void;
   completedActions: string[];
   onToggleAction: (id: string) => void;
@@ -642,18 +786,25 @@ function PlanView({
     <section className="workspace-section">
       <div className="workspace-heading">
         <div>
-          <p className="eyebrow">Four-week pathway</p>
+          <p className="eyebrow">Simulated four-week pathway</p>
           <h1>Small practices. Clear ownership.</h1>
           <p>
             Every action names a purpose, cadence, owner, and stop condition.
-            Completion changes only in this browser preview.
+            These are original demo suggestions—not licensed, validated, or
+            professional guidance. Completion changes only in this page.
           </p>
         </div>
         <button className="primary-button" type="button" onClick={onRelease}>
-          {released ? "Summary released" : "Release couple summary"}
+          {released
+            ? "Simulated summary released"
+            : canRelease
+              ? "Simulate approved release"
+              : "Review draft before release"}
         </button>
       </div>
       <DemoNotice />
+      <DemoWatermark />
+      <ProvenanceStrip />
       <div className="plan-layout">
         <div className="action-list">
           {actionItems.map((action) => {
@@ -674,10 +825,15 @@ function PlanView({
                 <div className="action-week">{action.week}</div>
                 <div className="action-copy">
                   <h2>{action.title}</h2>
+                  <p className="action-purpose">{action.purpose}</p>
                   <p>{action.detail}</p>
                   <div className="action-meta">
                     <span>{action.cadence}</span>
                     <span>{action.owner}</span>
+                  </div>
+                  <div className="action-stop">
+                    <strong>Stop condition</strong>
+                    {action.stopCondition}
                   </div>
                 </div>
               </article>
@@ -685,7 +841,7 @@ function PlanView({
           })}
         </div>
         <aside className="card followup-card">
-          <p className="eyebrow">Follow-up</p>
+          <p className="eyebrow">Fictional follow-up</p>
           <div className="followup-date">
             <span>28</span>
             <div>
@@ -713,25 +869,29 @@ function SafetyPastorView() {
     <section className="workspace-section safety-workspace">
       <div className="workspace-heading">
         <div>
-          <p className="eyebrow">Safety pathway</p>
+          <p className="eyebrow">Fictional safety workflow</p>
           <h1>Pause the joint pathway.</h1>
           <p>
-            A private response requires human follow-up before any couple
-            debrief, shared summary, or relationship exercise.
+            This simulation shows a proposed pause. It does not detect danger,
+            notify anyone, or operate a reviewed response protocol.
           </p>
         </div>
-        <span className="status-badge safety">Joint work paused</span>
+        <span className="status-badge safety">
+          Simulated joint-work pause
+        </span>
       </div>
       <DemoNotice />
+      <DemoWatermark />
+      <ProvenanceStrip />
       <section className="safety-banner" role="alert">
         <div className="safety-code">S1</div>
         <div>
           <p className="eyebrow">Minimum necessary alert</p>
           <h2>Private safety review required</h2>
           <p>
-            This demo intentionally withholds the spouse, exact answer, and
-            supporting text. Follow the organization’s approved protocol and
-            consult a qualified professional.
+            This fictional screen intentionally withholds the respondent, exact
+            answer, and supporting text. A live system would need an approved
+            protocol and qualified human oversight before handling real data.
           </p>
         </div>
       </section>
@@ -742,7 +902,9 @@ function SafetyPastorView() {
               <p className="eyebrow">Facilitator protocol preview</p>
               <h2>Protect privacy before interpretation</h2>
             </div>
-            <span className="status-badge neutral">Pastor only</span>
+            <span className="status-badge neutral">
+              Simulated facilitator-only view
+            </span>
           </div>
           <ol>
             <li>
@@ -756,8 +918,8 @@ function SafetyPastorView() {
             </li>
             <li>
               <span>03</span>
-              Follow the reviewed escalation and referral protocol for the
-              respondent’s location.
+              In a live version, follow only an expert-reviewed escalation and
+              referral protocol for the respondent’s location.
             </li>
             <li>
               <span>04</span>
@@ -789,16 +951,19 @@ function CoupleSummary({ released }: { released: boolean }) {
   if (!released) {
     return (
       <section className="completion-card">
-        <div className="completion-mark">Complete</div>
-        <p className="eyebrow">Your part is finished</p>
-        <h1>Thank you for sharing your perspective.</h1>
+        <DemoWatermark />
+        <ProvenanceStrip />
+        <div className="completion-mark">Sample complete</div>
+        <p className="eyebrow">Simulated spouse workflow</p>
+        <h1>The fictional perspective is complete.</h1>
         <p>
-          Pastor Frank is reviewing a couple-level report. Your spouse cannot
-          see your individual answers or written responses.
+          This previews a future waiting state. No real pastor is reviewing the
+          page, and the role switch can open every demo view. Production privacy
+          would require authenticated, separate accounts.
         </p>
         <div className="waiting-state">
           <span />
-          Shared summary awaiting facilitator review
+          Simulated summary awaiting facilitator review
         </div>
       </section>
     );
@@ -806,12 +971,15 @@ function CoupleSummary({ released }: { released: boolean }) {
 
   return (
     <section className="couple-summary">
+      <DemoWatermark />
+      <ProvenanceStrip />
       <div className="summary-hero">
-        <p className="eyebrow">Shared summary</p>
+        <p className="eyebrow">Simulated shared summary</p>
         <h1>You agree on what matters. The next step is learning how to return.</h1>
         <p>
-          This language was reviewed and released by Pastor Frank. It contains
-          no private responses or unconfirmed findings.
+          This demonstrates language that a future facilitator could approve.
+          It was not generated by AI or professionally reviewed, and the source
+          fixture contains no real responses.
         </p>
       </div>
       <div className="shared-insights">
@@ -851,12 +1019,15 @@ function SafetyCoupleView({ role }: { role: Role }) {
   if (role === "jordan") {
     return (
       <section className="completion-card">
-        <div className="completion-mark">Complete</div>
-        <p className="eyebrow">Your part is finished</p>
-        <h1>Your responses remain private.</h1>
+        <DemoWatermark />
+        <ProvenanceStrip />
+        <div className="completion-mark">Sample complete</div>
+        <p className="eyebrow">Simulated spouse workflow</p>
+        <h1>This role preview withholds the fictional trigger.</h1>
         <p>
-          The next step is under facilitator review. This screen does not reveal
-          another person’s completion details, answers, or pathway.
+          The screen demonstrates minimum-necessary visibility, but it is not
+          authenticated privacy. Anyone using the role switch can preview the
+          other demonstration roles.
         </p>
         <div className="waiting-state">
           <span />
@@ -868,8 +1039,8 @@ function SafetyCoupleView({ role }: { role: Role }) {
 
   return (
     <section className="private-safety-card" role="alert">
-      <div className="private-label">Private to you</div>
-      <p className="eyebrow">Your safety comes first</p>
+      <div className="private-label">Simulated private-to-you screen</div>
+      <p className="eyebrow">Fictional safety-workflow preview</p>
       <h1>You do not need to continue the couple assessment right now.</h1>
       <p>
         In a live product, this space would show region-appropriate, expert
@@ -885,8 +1056,8 @@ function SafetyCoupleView({ role }: { role: Role }) {
         </button>
       </div>
       <small>
-        Demonstration only. No crisis service is connected and no request is
-        sent.
+        Demonstration only. No authentication, crisis service, message
+        delivery, professional monitoring, or request submission is connected.
       </small>
     </section>
   );
@@ -911,16 +1082,26 @@ function CoupleAssessment({
   return (
     <section className="assessment-shell">
       <div className="assessment-intro">
-        <p className="eyebrow">Private perspective · {roleLabels[role]}</p>
-        <h1>There is room for both stories here.</h1>
+        <p className="eyebrow">
+          Simulated spouse perspective · {roleLabels[role]}
+        </p>
+        <h1>Preview how both fictional stories could be held.</h1>
         <p>
-          Answer from your own experience. Your spouse will not see your
-          selections or written responses.
+          Choose sample answers for this fictional persona only. Do not use the
+          demo for your relationship or enter personal information. Role
+          switching is not authentication.
         </p>
         <div className="privacy-points">
-          <span>Separate account</span>
-          <span>Private responses</span>
-          <span>Pastor-reviewed release</span>
+          <span>Simulated separate-account experience</span>
+          <span>Fixed-choice sample responses</span>
+          <span>No storage or real privacy guarantee</span>
+        </div>
+        <div className="consent-preview">
+          <strong>Simulated consent checkpoint</strong>
+          <span>
+            Continuing changes only this fictional browser preview. No
+            submission is sent or saved.
+          </span>
         </div>
       </div>
       <div className="question-card-large">
@@ -957,7 +1138,9 @@ function CoupleAssessment({
           ))}
         </div>
         <div className="question-footer">
-          <p>Selection stays only in this browser preview.</p>
+          <p>
+            Sample selection stays only in page memory and clears on refresh.
+          </p>
           <button
             className="primary-button"
             type="button"
@@ -1028,6 +1211,8 @@ export default function Home() {
   const [scenario, setScenario] = useState<Scenario>("growth");
   const [pastorView, setPastorView] = useState<PastorView>("overview");
   const [released, setReleased] = useState(false);
+  const [draftReviewStatus, setDraftReviewStatus] =
+    useState<DraftReviewStatus>("unreviewed");
   const [completedActions, setCompletedActions] = useState<string[]>([]);
   const [partnerSteps, setPartnerSteps] = useState({
     alex: 0,
@@ -1043,6 +1228,14 @@ export default function Home() {
   function handleScenarioChange(next: Scenario) {
     setScenario(next);
     setPastorView("overview");
+    setReleased(false);
+    setDraftReviewStatus("unreviewed");
+    setCompletedActions([]);
+    setPartnerSteps({
+      alex: 0,
+      jordan: assessmentQuestions.length - 1,
+    });
+    setSelectedAnswers({ alex: null, jordan: null });
   }
 
   function toggleAction(id: string) {
@@ -1062,6 +1255,14 @@ export default function Home() {
       ),
     }));
     setSelectedAnswers((current) => ({ ...current, [partner]: null }));
+  }
+
+  function handleRelease() {
+    if (scenario !== "growth" || draftReviewStatus !== "approved") {
+      setPastorView("draft");
+      return;
+    }
+    setReleased(true);
   }
 
   return (
@@ -1084,21 +1285,30 @@ export default function Home() {
             ) : pastorView === "overview" ? (
               <PastorOverview
                 released={released}
-                onRelease={() => setReleased(true)}
+                canRelease={draftReviewStatus === "approved"}
+                onRelease={handleRelease}
                 onViewChange={setPastorView}
               />
             ) : pastorView === "findings" ? (
-              <FindingsView onContinue={() => setPastorView("debrief")} />
+              <FindingsView onContinue={() => setPastorView("draft")} />
+            ) : pastorView === "draft" ? (
+              <SimulatedDraftView
+                reviewStatus={draftReviewStatus}
+                onReview={setDraftReviewStatus}
+                onContinue={() => setPastorView("debrief")}
+              />
             ) : pastorView === "debrief" ? (
               <DebriefView
                 released={released}
-                onRelease={() => setReleased(true)}
+                canRelease={draftReviewStatus === "approved"}
+                onRelease={handleRelease}
                 onContinue={() => setPastorView("plan")}
               />
             ) : (
               <PlanView
                 released={released}
-                onRelease={() => setReleased(true)}
+                canRelease={draftReviewStatus === "approved"}
+                onRelease={handleRelease}
                 completedActions={completedActions}
                 onToggleAction={toggleAction}
               />
