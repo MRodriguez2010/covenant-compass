@@ -37,6 +37,8 @@ export type DemoQuestion = {
   prompt: string;
   options: string[];
   domain: DemoDomain;
+  fixtureResponses: Record<"alex" | "jordan", number>;
+  evidenceIds: Record<"alex" | "jordan", string[]>;
   provenance: DemoProvenance;
 };
 

@@ -15,6 +15,9 @@ the existing development and Sites access. It contains only:
 - simulated facilitator, spouse, consent, staged-release, safety, and action-plan
   views;
 - a deterministic simulated-AI draft with mandatory review controls;
+- evidence-to-question traceability for every pre-authored result;
+- a deterministic synthetic seminar-cohort view with minimum-size suppression;
+- a stakeholder walkthrough guide;
 - methodology, assumptions, claims, data, and AI disclosure pages.
 
 It does not collect or persist assessment submissions, call an AI model, provide
@@ -30,6 +33,8 @@ until a separately approved post-Phase-5 milestone.
 ## Demo routes
 
 - `/` — interactive synthetic role and workflow preview;
+- `/cohort` — privacy-conscious synthetic seminar-planning aggregate;
+- `/demo-guide` — focused stakeholder walkthrough and discussion prompts;
 - `/methodology` — assumptions, limitations, paid gates, and claims register;
 - `/data-and-ai` — temporary data lifecycle and disconnected-provider status.
 

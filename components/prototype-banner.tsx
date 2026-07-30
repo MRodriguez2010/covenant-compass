@@ -13,6 +13,8 @@ export function PrototypeBanner() {
         </span>
       </div>
       <nav aria-label="Demo documentation">
+        <Link href="/demo-guide">Demo guide</Link>
+        <Link href="/cohort">Seminar cohort</Link>
         <Link href="/methodology">Methodology &amp; limitations</Link>
         <Link href="/data-and-ai">Data &amp; AI</Link>
         <span className="prototype-version">
@@ -33,6 +35,8 @@ export function DemoFooter() {
       </span>
       <nav aria-label="Footer navigation">
         <Link href="/">Interactive demo</Link>
+        <Link href="/cohort">Seminar cohort</Link>
+        <Link href="/demo-guide">Stakeholder guide</Link>
         <Link href="/methodology">Methodology &amp; limitations</Link>
         <Link href="/data-and-ai">Data &amp; AI</Link>
       </nav>

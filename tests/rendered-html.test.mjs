@@ -90,6 +90,44 @@ test("data and AI route proves all production providers are disconnected", async
   assert.match(html, /Codex subscription for building—not app runtime/i);
 });
 
+test("cohort route preserves synthetic aggregation and no-capture boundaries", async () => {
+  const response = await render("/cohort");
+  assert.equal(response.status, 200);
+
+  const html = await response.text();
+  assert.match(html, /Prototype demonstration/i);
+  assert.match(html, /original unlicensed questions/i);
+  assert.match(html, /no live AI/i);
+  assert.match(html, /not validated, clinical, or crisis care/i);
+  assert.match(html, /Aggregate simulation—not population insight/i);
+  assert.match(html, /no submissions or storage/i);
+  assert.match(html, /Restricted, incomplete, and individual-follow-up cases are excluded/i);
+  assert.match(html, /Live AI or paid APIs/i);
+  assert.doesNotMatch(html, /<input\b|<textarea\b|<form\b/i);
+  assert.doesNotMatch(html, />\s*(?:Send|Export)(?:\s|<)/i);
+  assert.doesNotMatch(
+    html,
+    /SEM-[A-H]\b|Synthetic case [A-H](?:\s|<)|Restricted synthetic case/i,
+  );
+});
+
+test("demo guide route keeps stakeholder claims inside prototype boundaries", async () => {
+  const response = await render("/demo-guide");
+  assert.equal(response.status, 200);
+
+  const html = await response.text();
+  assert.match(html, /Prototype demonstration/i);
+  assert.match(html, /Synthetic fixtures/i);
+  assert.match(html, /Unlicensed placeholder/i);
+  assert.match(html, /Assumptions—not validated/i);
+  assert.match(html, /No runtime AI/i);
+  assert.match(html, /synthetic workflow prototype/i);
+  assert.match(html, /Do not say: “validated assessment”/i);
+  assert.match(html, /live AI stay deferred/i);
+  assert.doesNotMatch(html, /<input\b|<textarea\b|<form\b/i);
+  assert.doesNotMatch(html, />\s*(?:Send|Export)(?:\s|<)/i);
+});
+
 test("source preserves the no-paid-integration and synthetic-only boundary", async () => {
   const [page, layout, manifest, hosting, packageJson, appSource, libSource] =
     await Promise.all([
@@ -103,8 +141,8 @@ test("source preserves the no-paid-integration and synthetic-only boundary", asy
     ]);
 
   assert.match(page, /Simulated AI draft · no model called/);
-  assert.match(page, /role\s+switching is not authentication/i);
-  assert.match(page, /Do not use the\s+demo for your relationship/i);
+  assert.match(page, /role\s+switching\s+is\s+not\s+authentication/i);
+  assert.match(page, /Do\s+not\s+use\s+the\s+demo\s+for\s+your\s+relationship/i);
   assert.match(page, /working hypothesis/i);
   assert.match(page, /Simulated joint-work pause/);
   assert.match(layout, /PrototypeBanner/);

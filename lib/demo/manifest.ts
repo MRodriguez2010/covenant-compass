@@ -1,7 +1,7 @@
 import type { DemoProvenance } from "./types";
 
-export const DEMO_VERSION = "0.5.0-demo";
-export const DEMO_LAST_REVIEWED = "July 29, 2026";
+export const DEMO_VERSION = "0.6.0-demo";
+export const DEMO_LAST_REVIEWED = "July 30, 2026";
 
 export const ORIGINAL_DEMO_PROVENANCE: DemoProvenance = {
   environment: "demo",
@@ -72,7 +72,7 @@ export const DEMO_ASSUMPTIONS = [
   {
     area: "Assessment content",
     current:
-      "Three original sample questions and four synthetic relationship domains.",
+      "Six original sample questions and four synthetic relationship domains.",
     assumption:
       "A future licensed instrument can be integrated without changing the core pastoral journey.",
     paidGate: "Instrument license and digital-delivery rights after Phase 5.",
@@ -108,6 +108,15 @@ export const DEMO_ASSUMPTIONS = [
     assumption:
       "A future model can produce sufficiently reliable drafts under mandatory human review.",
     paidGate: "API, vendor review, and shadow-mode evaluation after Phase 5.",
+  },
+  {
+    area: "Seminar cohort",
+    current:
+      "A deterministic aggregate of synthetic fixtures with minimum-size suppression and no participant-level display.",
+    assumption:
+      "Pastors can use carefully governed aggregate themes to plan a seminar without exposing a couple.",
+    paidGate:
+      "Privacy review, licensed norms, approved curriculum, identity, and storage after Phase 5.",
   },
 ] as const;
 

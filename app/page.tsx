@@ -21,7 +21,41 @@ const roleLabels: Record<Role, string> = {
 };
 
 const demoResult = deriveDemoResult(growthFixture);
-const simulatedDraft = buildSimulatedAIDraft(demoResult);
+const simulatedDraft = buildSimulatedAIDraft(demoResult)!;
+const fixtureRoles = ["alex", "jordan"] as const;
+
+const evidenceTraceability = assessmentQuestions.flatMap((question) =>
+  fixtureRoles.flatMap((role) =>
+    question.evidenceIds[role].map((evidenceId) => ({
+      evidenceId,
+      questionId: question.id,
+      questionVersion: question.version,
+      eyebrow: question.eyebrow,
+      role,
+      response:
+        question.options[question.fixtureResponses[role]] ??
+        "Missing authored fixture response",
+    })),
+  ),
+);
+
+const ruleTraceability: Record<
+  string,
+  { rule: string; inputs: string }
+> = {
+  "F-REPAIR": {
+    rule: "repair.alex < 50 AND repair.jordan < 50",
+    inputs: "Authored fixture indicators: Alex 38 · Jordan 44",
+  },
+  "F-TRUST-GAP": {
+    rule: "ABS(trust.alex - trust.jordan) >= 15",
+    inputs: "Authored fixture indicators: Alex 51 · Jordan 67 · gap 16",
+  },
+  "F-MEANING": {
+    rule: "sharedMeaning.alex >= 75 AND sharedMeaning.jordan >= 75",
+    inputs: "Authored fixture indicators: Alex 82 · Jordan 79",
+  },
+};
 
 if (!simulatedDraft) {
   throw new Error("Growth fixture must produce a simulated draft");
@@ -207,13 +241,19 @@ function Sidebar({
           </button>
         ))}
       </nav>
+      <nav className="sidebar-secondary" aria-label="Explore prototype">
+        <p className="eyebrow">Explore prototype</p>
+        <Link href="/cohort">Seminar cohort</Link>
+        <Link href="/demo-guide">Stakeholder guide</Link>
+        <Link href="/methodology">Methodology</Link>
+      </nav>
       <div className="sidebar-footer">
         <p className="eyebrow">Previewing facilitator role</p>
         <div className="avatar-row">
           <span className="avatar">FC</span>
           <span>
-            <strong>Frank Chavira</strong>
-            <small>Demo persona · not authenticated</small>
+            <strong>Pastor Frank</strong>
+            <small>Stakeholder demo persona · not authenticated</small>
           </span>
         </div>
       </div>
@@ -448,6 +488,17 @@ function PastorOverview({
             canRelease={canRelease}
             onRelease={onRelease}
           />
+          <section className="card cohort-callout">
+            <div>
+              <p className="eyebrow">New no-cost milestone</p>
+              <h3>Preview seminar planning at cohort level</h3>
+              <p>
+                See deterministic group-ready themes without participant rows,
+                small-cell details, storage, or a paid service.
+              </p>
+            </div>
+            <Link href="/cohort">Open synthetic cohort</Link>
+          </section>
           <section className="principle-card">
             <p className="eyebrow">Facilitator principle</p>
             <p>
@@ -514,6 +565,45 @@ function FindingsView({
                   </span>
                 ))}
               </div>
+              <details className="traceability-panel">
+                <summary>How this result was derived</summary>
+                <div className="traceability-rule">
+                  <strong>Deterministic rule</strong>
+                  <code>{ruleTraceability[finding.id]?.rule}</code>
+                  <span>{ruleTraceability[finding.id]?.inputs}</span>
+                </div>
+                <p>
+                  Illustrative responses linked to these evidence IDs are
+                  narrative context in fixture {demoResult.fixtureVersion}.
+                  They are not converted into indicators, and spouse-preview
+                  clicks do not score or change the report.
+                </p>
+                <div className="traceability-grid">
+                  {finding.evidenceIds.flatMap((evidenceId) => {
+                    const sources = evidenceTraceability.filter(
+                      (source) => source.evidenceId === evidenceId,
+                    );
+
+                    return sources.map((source) => (
+                      <article
+                        className="traceability-item"
+                        key={`${evidenceId}-${source.questionId}-${source.role}`}
+                      >
+                        <div>
+                          <span>{evidenceId}</span>
+                          <small>
+                            {source.questionId} · {source.questionVersion}
+                          </small>
+                        </div>
+                        <strong>
+                          {roleLabels[source.role]} · {source.eyebrow}
+                        </strong>
+                        <p>Authored response: “{source.response}”</p>
+                      </article>
+                    ));
+                  })}
+                </div>
+              </details>
             </div>
             <div className="question-card">
               <p className="eyebrow">Ask, don’t assume</p>
@@ -1078,6 +1168,7 @@ function CoupleAssessment({
 }) {
   const question = assessmentQuestions[step];
   const progress = Math.round(((step + 1) / assessmentQuestions.length) * 100);
+  const fixtureResponseIndex = question.fixtureResponses[role];
 
   return (
     <section className="assessment-shell">
@@ -1087,20 +1178,20 @@ function CoupleAssessment({
         </p>
         <h1>Preview how both fictional stories could be held.</h1>
         <p>
-          Choose sample answers for this fictional persona only. Do not use the
-          demo for your relationship or enter personal information. Role
-          switching is not authentication.
+          Replay the authored answers for this fictional persona only. Do not use the
+          demo for your relationship or enter personal information. Role switching is
+          not authentication.
         </p>
         <div className="privacy-points">
           <span>Simulated separate-account experience</span>
-          <span>Fixed-choice sample responses</span>
+          <span>Versioned authored fixture responses</span>
           <span>No storage or real privacy guarantee</span>
         </div>
         <div className="consent-preview">
           <strong>Simulated consent checkpoint</strong>
           <span>
-            Continuing changes only this fictional browser preview. No
-            submission is sent or saved.
+            Continuing replays only the versioned synthetic fixture. No
+            submission is created, sent, scored, or saved.
           </span>
         </div>
       </div>
@@ -1127,19 +1218,35 @@ function CoupleAssessment({
           {question.options.map((option, index) => (
             <button
               type="button"
-              className={selected === index ? "answer-option selected" : "answer-option"}
+              className={[
+                "answer-option",
+                index === fixtureResponseIndex ? "fixture" : "",
+                selected === index ? "selected" : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
               key={option}
               onClick={() => onSelect(index)}
               aria-pressed={selected === index}
+              disabled={index !== fixtureResponseIndex}
             >
               <span>{index + 1}</span>
-              {option}
+              <div className="answer-option-copy">
+                <strong>{option}</strong>
+                {index === fixtureResponseIndex && (
+                  <small>Authored fixture response · select to replay</small>
+                )}
+              </div>
             </button>
           ))}
         </div>
+        <p className="fixture-response-note">
+          Display-only alternatives are disabled so this walkthrough cannot
+          imply that a new answer caused the pre-authored report.
+        </p>
         <div className="question-footer">
           <p>
-            Sample selection stays only in page memory and clears on refresh.
+            Replay state stays only in page memory and clears on refresh.
           </p>
           <button
             className="primary-button"

@@ -8,7 +8,7 @@ import type {
 export const assessmentQuestions: DemoQuestion[] = [
   {
     id: "original-repair-01",
-    version: "demo-items-1.0",
+    version: "demo-items-1.1",
     eyebrow: "Repair after conflict",
     prompt: "In this fictional example, how easy is it to reconnect after a disagreement cools down?",
     options: [
@@ -18,24 +18,89 @@ export const assessmentQuestions: DemoQuestion[] = [
       "Very easy",
     ],
     domain: "repair",
+    fixtureResponses: { alex: 0, jordan: 1 },
+    evidenceIds: {
+      alex: ["E-REPAIR-A", "E-REPAIR-S"],
+      jordan: ["E-REPAIR-J"],
+    },
     provenance: ORIGINAL_DEMO_PROVENANCE,
   },
   {
     id: "original-trust-01",
-    version: "demo-items-1.0",
+    version: "demo-items-1.1",
     eyebrow: "Financial conversations",
     prompt: "In this fictional example, how safe does it feel to talk openly about money?",
     options: ["Not safe", "A little safe", "Mostly safe", "Very safe"],
     domain: "trust",
+    fixtureResponses: { alex: 1, jordan: 2 },
+    evidenceIds: {
+      alex: ["E-TRUST-GAP"],
+      jordan: ["E-TRUST-GAP"],
+    },
     provenance: ORIGINAL_DEMO_PROVENANCE,
   },
   {
     id: "original-meaning-01",
-    version: "demo-items-1.0",
+    version: "demo-items-1.1",
     eyebrow: "Shared meaning",
     prompt: "This fictional couple has a clear sense of what they want their marriage to stand for.",
     options: ["Strongly disagree", "Disagree", "Agree", "Strongly agree"],
     domain: "sharedMeaning",
+    fixtureResponses: { alex: 3, jordan: 2 },
+    evidenceIds: {
+      alex: ["E-MEANING-A"],
+      jordan: ["E-MEANING-J"],
+    },
+    provenance: ORIGINAL_DEMO_PROVENANCE,
+  },
+  {
+    id: "original-connection-01",
+    version: "demo-items-1.1",
+    eyebrow: "Everyday connection",
+    prompt:
+      "In this fictional example, how often do small moments of attention help the couple feel connected?",
+    options: ["Rarely", "Sometimes", "Often", "Very often"],
+    domain: "connection",
+    fixtureResponses: { alex: 2, jordan: 2 },
+    evidenceIds: {
+      alex: ["E-CONNECTION-A"],
+      jordan: ["E-CONNECTION-J"],
+    },
+    provenance: ORIGINAL_DEMO_PROVENANCE,
+  },
+  {
+    id: "original-commitment-01",
+    version: "demo-items-1.1",
+    eyebrow: "Commitment",
+    prompt:
+      "In this fictional example, both spouses want to invest in improving the relationship.",
+    options: ["Strongly disagree", "Disagree", "Agree", "Strongly agree"],
+    domain: "sharedMeaning",
+    fixtureResponses: { alex: 3, jordan: 3 },
+    evidenceIds: {
+      alex: ["E-COMMIT"],
+      jordan: ["E-COMMIT"],
+    },
+    provenance: ORIGINAL_DEMO_PROVENANCE,
+  },
+  {
+    id: "original-goal-01",
+    version: "demo-items-1.1",
+    eyebrow: "Conversation goal",
+    prompt:
+      "Which authored goal is loaded for this fictional spouse preview?",
+    options: [
+      "Avoid the topic",
+      "Win the disagreement",
+      "Understand the pattern",
+      "Practice returning to the conversation",
+    ],
+    domain: "repair",
+    fixtureResponses: { alex: 3, jordan: 3 },
+    evidenceIds: {
+      alex: ["E-GOAL"],
+      jordan: ["E-GOAL"],
+    },
     provenance: ORIGINAL_DEMO_PROVENANCE,
   },
 ];
@@ -82,7 +147,8 @@ export const growthFixture: DemoCaseFixture = {
     { id: "E-REPAIR-J", label: "Jordan fixture: repair indicator 44" },
     {
       id: "E-REPAIR-S",
-      label: "Synthetic fixture phrase: “we leave it unresolved”",
+      label:
+        "Alex authored response: “Very difficult” reconnecting after conflict",
     },
     { id: "E-TRUST-GAP", label: "16-point trust perception gap" },
     {
@@ -100,6 +166,14 @@ export const growthFixture: DemoCaseFixture = {
     {
       id: "E-GOAL",
       label: "Both fictional respondents selected repair as the goal",
+    },
+    {
+      id: "E-CONNECTION-A",
+      label: "Alex fixture: connection indicator 68",
+    },
+    {
+      id: "E-CONNECTION-J",
+      label: "Jordan fixture: connection indicator 73",
     },
   ],
 };
